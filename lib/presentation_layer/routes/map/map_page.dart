@@ -20,6 +20,7 @@ import 'atoms/navigation_action_button.dart';
 import 'map_location_reports_notifier.dart';
 import 'map_state_notifier.dart';
 import 'utils/map_pin_generator.dart';
+import 'user_location_puck/location_puck_controller.dart';
 import 'utils/user_location_pin_generator.dart';
 
 class MapPage extends ConsumerStatefulWidget {
@@ -90,15 +91,7 @@ class _MapPageState extends ConsumerState<MapPage> {
     _reportManager?.tapEvents(onTap: _onReportAnnotationTap);
     await _reportManager?.setIconOpacity(_reportOpacity);
     if (!mounted || _map != map) return;
-    await map.location.updateSettings(
-      LocationComponentSettings(
-        enabled: true,
-        pulsingEnabled: true,
-        puckBearingEnabled: true,
-        puckBearing: PuckBearing.HEADING,
-        showAccuracyRing: true,
-      ),
-    );
+    await ref.read(locationPuckProvider.notifier).attachMap(map);
     if (!mounted || _map != map) return;
     await _render(ref.read(mapStateProvider));
     await _onViewportSettled();

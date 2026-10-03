@@ -9,13 +9,8 @@ import 'user_location_pin.dart';
 
 class LocationReportDetailsSheet extends ConsumerWidget {
   final DraggableScrollableController? controller;
-  final double minChildHeight;
 
-  const LocationReportDetailsSheet({
-    super.key,
-    this.controller,
-    this.minChildHeight = 160,
-  }) : assert(minChildHeight >= 0);
+  const LocationReportDetailsSheet({super.key, this.controller});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,9 +23,6 @@ class LocationReportDetailsSheet extends ConsumerWidget {
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final minChildSize = (minChildHeight / MediaQuery.sizeOf(context).height)
-        .clamp(0.0, 0.35)
-        .toDouble();
     final metadataStream = ref
         .read(metadataProvider)
         .getMetadataByPubkey(report.pubkey);
@@ -38,10 +30,9 @@ class LocationReportDetailsSheet extends ConsumerWidget {
     return DraggableScrollableSheet(
       controller: controller,
       initialChildSize: 0.35,
-      minChildSize: minChildSize,
+      minChildSize: 0.20,
       maxChildSize: 0.75,
       snap: true,
-      shouldCloseOnMinExtent: false,
       builder: (context, scrollController) => Material(
         elevation: 16,
         shadowColor: Colors.black38,
@@ -106,7 +97,9 @@ class LocationReportDetailsSheet extends ConsumerWidget {
                     ),
                     IconButton.filledTonal(
                       tooltip: 'Close details',
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: ref
+                          .read(mapStateProvider.notifier)
+                          .closeLocationReportSheet,
                       icon: const Icon(Icons.close),
                     ),
                   ],

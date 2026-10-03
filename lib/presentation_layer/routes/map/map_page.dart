@@ -14,8 +14,8 @@ import 'atoms/location_action_button.dart';
 import 'atoms/location_details_sheet.dart';
 import 'atoms/location_report_details_sheet.dart';
 import 'atoms/map_error_banner.dart';
+import 'package:go_router/go_router.dart';
 import 'atoms/map_search_bar.dart';
-import 'atoms/map_search_results.dart';
 import 'atoms/navigation_action_button.dart';
 import 'map_location_reports_notifier.dart';
 import 'map_state_notifier.dart';
@@ -163,6 +163,13 @@ class _MapPageState extends ConsumerState<MapPage> {
       selectedPoi,
       StandardPOIsState(hide: false),
     );
+  }
+
+  Future<void> _openSearch() async {
+    final place = await context.push<MapPlace>('/map/search');
+    if (place == null || !mounted) return;
+    _searchController.text = place.name;
+    await _selectDestination(place);
   }
 
   Future<void> _selectDestination(
@@ -420,6 +427,7 @@ class _MapPageState extends ConsumerState<MapPage> {
     final bool hideFabGroup = isSheetOpen && currentSheetExtent >= 0.50;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           MapWidget(
@@ -442,13 +450,9 @@ class _MapPageState extends ConsumerState<MapPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      MapSearchBar(controller: _searchController),
-                      const SizedBox(height: 8),
-                      MapSearchResults(
-                        onPlaceTap: (place) async {
-                          _searchController.text = place.name;
-                          await _selectDestination(place);
-                        },
+                      MapSearchBar(
+                        controller: _searchController,
+                        onTap: _openSearch,
                       ),
                     ],
                   ),

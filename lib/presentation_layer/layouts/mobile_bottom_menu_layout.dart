@@ -22,6 +22,7 @@ class MobileBottomMenuLayout extends StatelessWidget {
       top: false,
       bottom: false,
       child: Scaffold(
+        resizeToAvoidBottomInset: !currentRoute.startsWith('/map'),
         body: mainContent,
         bottomNavigationBar: AnimatedSwitcher(
           duration: Duration(milliseconds: 250),

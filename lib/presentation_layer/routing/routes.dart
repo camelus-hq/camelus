@@ -49,6 +49,7 @@ import '../routes/messages/dm_thread_page.dart';
 import '../routes/messages/new_dm_page.dart';
 import '../routes/map/map_navigation_page.dart';
 import '../routes/map/map_page.dart';
+import '../routes/map/map_search_page.dart';
 import '../routes/wallet/add_mint/add_mint_page.dart';
 import '../routes/wallet/mint_info/mint_info_page.dart';
 import '../routes/wallet/wallet_navigation.dart';
@@ -141,6 +142,17 @@ final routes = [
             path: '/map',
             builder: (context, state) => const MapPage(),
             routes: [
+              GoRoute(
+                path: 'search',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const MapSearchPage(),
+                  transitionDuration: const Duration(milliseconds: 200),
+                  reverseTransitionDuration: const Duration(milliseconds: 150),
+                  transitionsBuilder: (context, animation, _, child) =>
+                      FadeTransition(opacity: animation, child: child),
+                ),
+              ),
               GoRoute(
                 path: 'navigation',
                 builder: (context, state) => const MapNavigationPage(),

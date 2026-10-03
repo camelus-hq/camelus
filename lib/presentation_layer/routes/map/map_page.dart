@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../domain_layer/entities/map_coordinate.dart';
+import '../../../domain_layer/entities/map_place.dart';
 import '../../../domain_layer/entities/user_location_report.dart';
 import '../../../domain_layer/entities/user_metadata.dart';
 import '../../providers/metadata_provider.dart';
@@ -35,6 +36,7 @@ class _MapPageState extends ConsumerState<MapPage> {
   PointAnnotationManager? _pointManager;
   PolylineAnnotationManager? _lineManager;
   PointAnnotationManager? _reportManager;
+  TypedFeaturesetFeature<StandardPOIs>? _selectedPoi;
   Uint8List? _cachedPinBytes;
   final Map<String, PointAnnotation> _reportAnnotationsByEventId = {};
   final Map<String, UserLocationReport> _reportsByAnnotationId = {};
@@ -71,6 +73,10 @@ class _MapPageState extends ConsumerState<MapPage> {
   Future<void> _onMapCreated(MapboxMap map) async {
     if (!mounted) return;
     _map = map;
+    map.addInteraction(
+      TapInteraction(StandardPOIs(), _onStandardPoiTap),
+      interactionID: 'select-standard-poi',
+    );
     map.addInteraction(
       TapInteraction.onMap(_selectMapLocation),
       interactionID: 'select-map-location',
@@ -145,7 +151,71 @@ class _MapPageState extends ConsumerState<MapPage> {
   void _onReportAnnotationTap(PointAnnotation annotation) {
     final report = _reportsByAnnotationId[annotation.id];
     if (report == null) return;
+    _selectLocationReport(report);
+  }
+
+  Future<void> _selectLocationReport(UserLocationReport report) async {
+    await _deselectStandardPoi();
+    if (!mounted) return;
     ref.read(mapStateProvider.notifier).selectLocationReport(report);
+  }
+
+  Future<void> _deselectStandardPoi() async {
+    final selectedPoi = _selectedPoi;
+    final map = _map;
+    _selectedPoi = null;
+    if (selectedPoi == null || map == null) return;
+
+    await map.setFeatureStateForFeaturesetFeature(
+      selectedPoi,
+      StandardPOIsState(hide: false),
+    );
+  }
+
+  Future<void> _selectDestination(
+    MapPlace destination, {
+    TypedFeaturesetFeature<StandardPOIs>? poi,
+  }) async {
+    await _deselectStandardPoi();
+
+    final map = _map;
+    if (poi != null && map != null) {
+      await map.setFeatureStateForFeaturesetFeature(
+        poi,
+        StandardPOIsState(hide: true),
+      );
+      if (!mounted || _map != map) return;
+      _selectedPoi = poi;
+    }
+
+    if (!mounted) return;
+    ref.read(mapStateProvider.notifier).selectDestination(destination);
+    await _focusPlace(destination.coordinate);
+  }
+
+  Future<void> _onStandardPoiTap(
+    TypedFeaturesetFeature<StandardPOIs> poi,
+    MapContentGestureContext _,
+  ) async {
+    final rawCoordinates = poi.geometry['coordinates'];
+    if (rawCoordinates is! List ||
+        rawCoordinates.length < 2 ||
+        rawCoordinates[0] is! num ||
+        rawCoordinates[1] is! num) {
+      return;
+    }
+    final longitude = (rawCoordinates[0] as num).toDouble();
+    final latitude = (rawCoordinates[1] as num).toDouble();
+    final category = poi.category;
+    final group = poi.group;
+    await _selectDestination(
+      MapPlace(
+        name: poi.name ?? 'Point of interest',
+        address: [category, group].whereType<String>().join(' · '),
+        coordinate: MapCoordinate(longitude: longitude, latitude: latitude),
+      ),
+      poi: poi,
+    );
   }
 
   Future<void> _syncReportAnnotations(List<UserLocationReport> reports) async {
@@ -286,6 +356,8 @@ class _MapPageState extends ConsumerState<MapPage> {
       longitude: context.point.coordinates.lng.toDouble(),
       latitude: context.point.coordinates.lat.toDouble(),
     );
+    await _deselectStandardPoi();
+    if (!mounted) return;
     ref.read(mapStateProvider.notifier).selectMapLocation(coordinate);
     await _focusPlace(coordinate);
   }
@@ -308,6 +380,10 @@ class _MapPageState extends ConsumerState<MapPage> {
       if (previous?.destination != next.destination ||
           previous?.route != next.route) {
         _render(next);
+      }
+
+      if (previous?.destination != null && next.destination == null) {
+        _deselectStandardPoi();
       }
 
       if (next.destination == null && _searchController.text.isNotEmpty) {
@@ -376,12 +452,9 @@ class _MapPageState extends ConsumerState<MapPage> {
                       MapSearchBar(controller: _searchController),
                       const SizedBox(height: 8),
                       MapSearchResults(
-                        onPlaceTap: (place) {
+                        onPlaceTap: (place) async {
                           _searchController.text = place.name;
-                          ref
-                              .read(mapStateProvider.notifier)
-                              .selectDestination(place);
-                          _focusPlace(place.coordinate);
+                          await _selectDestination(place);
                         },
                       ),
                     ],

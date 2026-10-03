@@ -8,8 +8,13 @@ import '../map_state_notifier.dart';
 
 class LocationDetailsSheet extends ConsumerWidget {
   final DraggableScrollableController? controller;
+  final double minChildHeight;
 
-  const LocationDetailsSheet({super.key, this.controller});
+  const LocationDetailsSheet({
+    super.key,
+    this.controller,
+    this.minChildHeight = 80,
+  }) : assert(minChildHeight >= 0);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,13 +27,17 @@ class LocationDetailsSheet extends ConsumerWidget {
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final minChildSize = (minChildHeight / MediaQuery.sizeOf(context).height)
+        .clamp(0.0, 0.35)
+        .toDouble();
 
     return DraggableScrollableSheet(
       controller: controller,
       initialChildSize: 0.35,
-      minChildSize: 0.20,
+      minChildSize: minChildSize,
       maxChildSize: 0.75,
       snap: true,
+      shouldCloseOnMinExtent: false,
       builder: (context, scrollController) => Material(
         elevation: 16,
         shadowColor: Colors.black38,
@@ -76,9 +85,7 @@ class LocationDetailsSheet extends ConsumerWidget {
                 ),
                 IconButton.filledTonal(
                   tooltip: 'Close details',
-                  onPressed: ref
-                      .read(mapStateProvider.notifier)
-                      .closeLocationSheet,
+                  onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
                 ),
               ],

@@ -25,8 +25,8 @@ class LocationReportRepositoryImpl implements LocationReportRepository {
     final subscriptionId = 'locationReports-${geohashes.join(',')}';
     final response = dartNdkSource.dartNdk.requests.subscription(
       filter: filter,
-      name: subscriptionId,
-      id: subscriptionId,
+      //name: subscriptionId,
+      //id: subscriptionId,
       cacheRead: true,
       cacheWrite: true,
     );

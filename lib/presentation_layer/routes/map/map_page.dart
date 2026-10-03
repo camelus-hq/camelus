@@ -44,6 +44,7 @@ class _MapPageState extends ConsumerState<MapPage> {
   _metadataSubscriptionsByEventId = {};
   Timer? _viewportDebounce;
   double _reportOpacity = 0;
+  bool _sheetRouteOpen = false;
 
   @override
   void initState() {
@@ -377,6 +378,19 @@ class _MapPageState extends ConsumerState<MapPage> {
     final state = ref.watch(mapStateProvider);
 
     ref.listen<MapState>(mapStateProvider, (previous, next) {
+      final wasSheetOpen =
+          previous?.isLocationSheetOpen == true ||
+          previous?.selectedLocationReport != null;
+      final isSheetOpen =
+          (next.destination != null && next.isLocationSheetOpen) ||
+          next.selectedLocationReport != null;
+
+      if (!wasSheetOpen && isSheetOpen) {
+        _showLocationSheet();
+      } else if (wasSheetOpen && !isSheetOpen && _sheetRouteOpen) {
+        Navigator.of(context).pop();
+      }
+
       if (previous?.destination != next.destination ||
           previous?.route != next.route) {
         _render(next);
@@ -490,10 +504,6 @@ class _MapPageState extends ConsumerState<MapPage> {
               ),
             ),
           ),
-          if (isDestinationSheetOpen)
-            LocationDetailsSheet(controller: _sheetController),
-          if (isReportSheetOpen)
-            LocationReportDetailsSheet(controller: _sheetController),
           const Positioned(
             left: 0,
             right: 0,
@@ -503,5 +513,52 @@ class _MapPageState extends ConsumerState<MapPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _showLocationSheet() async {
+    if (_sheetRouteOpen || !mounted) return;
+    _sheetRouteOpen = true;
+
+    final navigator = Navigator.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    final route = ModalBottomSheetRoute<void>(
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Consumer(
+          builder: (context, ref, child) {
+            final state = ref.watch(mapStateProvider);
+            if (state.destination != null && state.isLocationSheetOpen) {
+              return LocationDetailsSheet(controller: _sheetController);
+            }
+            return LocationReportDetailsSheet(controller: _sheetController);
+          },
+        ),
+      ),
+      capturedThemes: InheritedTheme.capture(
+        from: context,
+        to: navigator.context,
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      modalBarrierColor: Colors.transparent,
+      isDismissible: false,
+      enableDrag: false,
+      barrierLabel: localizations.scrimLabel,
+      barrierOnTapHint: localizations.scrimOnTapHint(
+        localizations.bottomSheetLabel,
+      ),
+    );
+    unawaited(navigator.push(route));
+    await route.completed;
+
+    _sheetRouteOpen = false;
+    if (!mounted) return;
+
+    final state = ref.read(mapStateProvider);
+    if (state.destination != null && state.isLocationSheetOpen) {
+      ref.read(mapStateProvider.notifier).closeLocationSheet();
+    } else if (state.selectedLocationReport != null) {
+      ref.read(mapStateProvider.notifier).closeLocationReportSheet();
+    }
   }
 }

@@ -2,8 +2,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_link_previewer/flutter_link_previewer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'link_preview_state_provider.dart';
-
 class LinkPreviewWidget extends ConsumerWidget {
   const LinkPreviewWidget({
     super.key,
@@ -17,69 +15,36 @@ class LinkPreviewWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return LinkPreview(
-      linkStyle: TextStyle(
+      insidePadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 18),
+      //outsidePadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      sideBorderWidth: 0,
+      onLinkPreviewDataFetched: (data) {},
+      titleTextStyle: TextStyle(
         color: Theme.of(context).colorScheme.primary,
         fontSize: _fontSize - 2,
         decoration: TextDecoration.none,
       ),
       enableAnimation: true,
-      onPreviewDataFetched: (data) {
-        ref.read(linkPreviewProvider(url).notifier).setPreview(data);
-      },
-      previewData: ref.watch(linkPreviewProvider(url)),
+
       text: url,
-      textWidget: Text(
-        url,
-        style: TextStyle(color: Theme.of(context).colorScheme.primary),
+      descriptionTextStyle: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+        fontSize: _fontSize - 4,
+        decoration: TextDecoration.none,
       ),
-      width: MediaQuery.of(context).size.width,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+
+      maxWidth: MediaQuery.of(context).size.width,
+
       hideImage: false,
-      previewBuilder: (context, previewData) {
+      imageBuilder: (imageUrl) {
         return Container(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              if (previewData.image != null)
-                Container(
-                  width: 80,
-                  height: 80,
-                  margin: const EdgeInsets.only(right: 8),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      previewData.image!.url,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (previewData.title != null)
-                      Text(
-                        previewData.title!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    if (previewData.description != null)
-                      Text(
-                        previewData.description!.substring(
-                          0,
-                          previewData.description!.length > 100
-                              ? 100
-                              : previewData.description!.length,
-                        ),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+          width: 80,
+          height: 80,
+          margin: const EdgeInsets.only(right: 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(imageUrl, fit: BoxFit.cover),
           ),
         );
       },

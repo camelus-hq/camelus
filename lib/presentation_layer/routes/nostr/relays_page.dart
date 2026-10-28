@@ -45,261 +45,273 @@ class _RelaysPageState extends ConsumerState<RelaysPage> {
                   final relay = relays[index];
                   final url = relay.url;
 
-                  // Check if this relay has privacy policy or terms of service
-                  final hasPrivacyPolicy =
-                      relay.relayInfo != null &&
-                      relay.relayInfo!.privacyPolicy.isNotEmpty;
-                  final hasTermsOfService =
-                      relay.relayInfo != null &&
-                      relay.relayInfo!.termsOfService.isNotEmpty;
+                  return FutureBuilder<RelayInfo?>(
+                    future: ndk.connectivity.getRelayInfo(url),
+                    builder: (context, infoSnapshot) {
+                      final relayInfo = infoSnapshot.data;
+                      final hasPrivacyPolicy =
+                          relayInfo?.privacyPolicy.isNotEmpty ?? false;
+                      final hasTermsOfService =
+                          relayInfo?.termsOfService.isNotEmpty ?? false;
 
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 12,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              relay.relayInfo?.icon != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      child: Image.network(
-                                        "${relay.relayInfo?.icon}",
-                                        width: 50,
-                                        height: 50,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return Container(
-                                                width: 50,
-                                                height: 50,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.inverseSurface,
-                                                child: Icon(
-                                                  PhosphorIcons.globe,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .surfaceContainerHighest,
-                                                ),
-                                              );
-                                            },
-                                      ),
-                                    )
-                                  : Container(
-                                      width: 50,
-                                      height: 50,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.inverseSurface,
-                                        borderRadius: BorderRadius.circular(
-                                          8.0,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        PhosphorIcons.globe,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceContainerHighest,
-                                      ),
-                                    ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      relay.relayInfo?.name ?? url,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      url,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.inverseSurface,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                relay.isConnected
-                                    ? PhosphorIcons.plugsConnected
-                                    : PhosphorIcons.plugs,
-                                color: relay.isConnected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.orangeAccent, //! hard coded color
-                                size: 28,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _StatItem(
-                                context: context,
-                                icon: PhosphorIcons.arrowDown,
-                                label: AppLocalizations.of(context)!.eventsRead,
-                                value: relay.stats.eventsRead.toString(),
-                              ),
-                              _StatItem(
-                                context: context,
-                                icon: PhosphorIcons.arrowUp,
-                                label: AppLocalizations.of(
-                                  context,
-                                )!.eventsWritten,
-                                value: relay.stats.eventsWritten.toString(),
-                              ),
-                              _StatItem(
-                                context: context,
-                                icon: PhosphorIcons.lighthouse,
-                                label: AppLocalizations.of(
-                                  context,
-                                )!.connectionSource,
-                                value: relay.relay.connectionSource.name,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          if (relay.relayInfo != null &&
-                              relay.relayInfo!.description.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12.0),
-                              child: Text(
-                                relay.relayInfo!.description,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.inverseSurface,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-
-                          if (relay.relayInfo?.contact != null &&
-                              relay.relayInfo!.contact.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12.0),
-                              child: Text(
-                                "contact: ${relay.relayInfo!.contact}",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.inverseSurface,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-
-                          // Only show policy links section if at least one link is available
-                          if (hasPrivacyPolicy || hasTermsOfService)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              Row(
                                 children: [
-                                  if (hasPrivacyPolicy)
-                                    TextButton(
-                                      onPressed: () async {
-                                        launchUrlString(
-                                          relay.relayInfo!.privacyPolicy,
-                                          mode: LaunchMode.externalApplication,
-                                        );
-                                      },
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
+                                  relayInfo?.icon != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            8.0,
+                                          ),
+                                          child: Image.network(
+                                            relayInfo!.icon,
+                                            width: 50,
+                                            height: 50,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return Container(
+                                                    width: 50,
+                                                    height: 50,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .inverseSurface,
+                                                    child: Icon(
+                                                      PhosphorIcons.globe,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .surfaceContainerHighest,
+                                                    ),
+                                                  );
+                                                },
+                                          ),
+                                        )
+                                      : Container(
+                                          width: 50,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.inverseSurface,
+                                            borderRadius: BorderRadius.circular(
+                                              8.0,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            PhosphorIcons.globe,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                          ),
                                         ),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.privacyPolicy,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          (relayInfo?.name.isNotEmpty ?? false)
+                                              ? relayInfo!.name
+                                              : url,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          url,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.inverseSurface,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
-                                  if (hasPrivacyPolicy && hasTermsOfService)
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      child: Text(
-                                        '•',
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.surfaceContainerHighest,
-                                        ),
-                                      ),
-                                    ),
-                                  if (hasTermsOfService)
-                                    TextButton(
-                                      onPressed: () async {
-                                        launchUrlString(
-                                          relay.relayInfo!.termsOfService,
-                                          mode: LaunchMode.externalApplication,
-                                        );
-                                      },
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.termsOfService,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                      ),
-                                    ),
+                                  ),
+                                  Icon(
+                                    relay.isConnected
+                                        ? PhosphorIcons.plugsConnected
+                                        : PhosphorIcons.plugs,
+                                    color: relay.isConnected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors
+                                              .orangeAccent, //! hard coded color
+                                    size: 28,
+                                  ),
                                 ],
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
+                              const SizedBox(height: 12),
+                              const Divider(),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _StatItem(
+                                    context: context,
+                                    icon: PhosphorIcons.arrowDown,
+                                    label: AppLocalizations.of(
+                                      context,
+                                    )!.eventsRead,
+                                    value: relay.stats.eventsRead.toString(),
+                                  ),
+                                  _StatItem(
+                                    context: context,
+                                    icon: PhosphorIcons.arrowUp,
+                                    label: AppLocalizations.of(
+                                      context,
+                                    )!.eventsWritten,
+                                    value: relay.stats.eventsWritten.toString(),
+                                  ),
+                                  _StatItem(
+                                    context: context,
+                                    icon: PhosphorIcons.lighthouse,
+                                    label: AppLocalizations.of(
+                                      context,
+                                    )!.connectionSource,
+                                    value: relay.relay.connectionSource.name,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+
+                              if (relayInfo?.description.isNotEmpty ?? false)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12.0),
+                                  child: Text(
+                                    relayInfo!.description,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.inverseSurface,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+
+                              if (relayInfo?.contact.isNotEmpty ?? false)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12.0),
+                                  child: Text(
+                                    "contact: ${relayInfo!.contact}",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.inverseSurface,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+
+                              // Only show policy links section if at least one link is available
+                              if (hasPrivacyPolicy || hasTermsOfService)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (hasPrivacyPolicy)
+                                        TextButton(
+                                          onPressed: () async {
+                                            launchUrlString(
+                                              relayInfo!.privacyPolicy,
+                                              mode: LaunchMode
+                                                  .externalApplication,
+                                            );
+                                          },
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
+                                          ),
+                                          child: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.privacyPolicy,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      if (hasPrivacyPolicy && hasTermsOfService)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                          child: Text(
+                                            '•',
+                                            style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .surfaceContainerHighest,
+                                            ),
+                                          ),
+                                        ),
+                                      if (hasTermsOfService)
+                                        TextButton(
+                                          onPressed: () async {
+                                            launchUrlString(
+                                              relayInfo!.termsOfService,
+                                              mode: LaunchMode
+                                                  .externalApplication,
+                                            );
+                                          },
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
+                                          ),
+                                          child: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.termsOfService,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );
